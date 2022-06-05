@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+.idea
+backend/app/satellite_data
+backend/app/data
+backend/app/NDVI.tif
