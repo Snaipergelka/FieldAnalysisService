@@ -1,7 +1,9 @@
-from fastapi import FastAPI
-from backend.app.routers import fields
 import logging
 
+from fastapi import FastAPI
+
+from backend.app.database.database_config import init_tables
+from backend.app.routers import fields
 
 logging.basicConfig(
     level=logging.INFO,
@@ -13,5 +15,13 @@ logging.basicConfig(
 )
 
 app = FastAPI()
-
 app.include_router(fields.router)
+
+
+@app.on_event("startup")
+def startup_event():
+    """
+    Creating tables before FatAPI apps start.
+    :return:
+    """
+    init_tables()
