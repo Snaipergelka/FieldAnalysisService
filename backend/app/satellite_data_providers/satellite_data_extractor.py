@@ -22,15 +22,26 @@ class SciHubSatelliteDataExtractor:
         :return:
         """
 
-        res = [p for p in os.walk(self.path)
-               if "GRANULE" in p[0]
-               and "IMG_DATA" in p[0]
-               and resolution in p[0]]
+        resolution_present = len([
+            p for p in os.walk(self.path)
+            if "R10m" in p[0] or "R20m" in p[0] or "R60m" in p[0]
+            ]) > 0
+
+        if resolution_present:
+            res = [p for p in os.walk(self.path)
+                   if "GRANULE" in p[0]
+                   and "IMG_DATA" in p[0]
+                   and resolution in p[0]]
+        else:
+            res = [p for p in os.walk(self.path)
+                   if "GRANULE" in p[0]
+                   and "IMG_DATA" in p[0]
+                   ]
 
         if len(res) == 0:
             raise Exception(
-                "Impossible to parse provided folder. "
-                "Please check if path is correct!"
+                f"Impossible to parse provided folder {self.path}. "
+                f"Please check if path is correct!"
             )
 
         return res[0]

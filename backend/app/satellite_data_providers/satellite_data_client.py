@@ -1,11 +1,11 @@
 import os
 
 
-class SatelliteDataProvider:
+class SatelliteDataClient:
     def __init__(self, api_client):
         self.client = api_client
 
-    def get_data(self, footprint, output_folder: str = "satellite_data"):
+    def get_data(self, footprint, output_folder: str = "satellite_data_providers"):
         """
         Gets data from Copernicus open access hub api by footprint.
 
@@ -36,4 +36,4 @@ class SatelliteDataProvider:
         self.client.download(id=m_uuid, directory_path=output_folder)
 
         # return path to downloaded data
-        return os.path.join(output_folder, title)
+        return os.path.join(output_folder, title + ".zip")

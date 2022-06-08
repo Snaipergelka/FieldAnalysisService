@@ -1,6 +1,7 @@
 import logging
 
 from fastapi import FastAPI
+import uvicorn
 
 from backend.app.database.database_config import init_tables
 from backend.app.routers import fields
@@ -25,3 +26,7 @@ def startup_event():
     :return:
     """
     init_tables()
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8001)

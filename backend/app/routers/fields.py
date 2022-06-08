@@ -1,11 +1,13 @@
 import logging
+import os
 
 from fastapi import APIRouter, Depends
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
+from geojson_pydantic import FeatureCollection
 
 from backend.app.celery_tasks import count_ndvi, get_satellite_data
 from backend.app.database import crud, schemas
-from backend.app.file_system_storage import FileSystemStorage
+from backend.app.fs.file_system_storage import ArtifactsFileSystemStorage
 
 from .routers_config import connecting_to_db
 
@@ -14,11 +16,12 @@ router = APIRouter(
     tags=["field"],
     )
 
+storage = ArtifactsFileSystemStorage(base_path=os.getenv("FS_STORAGE_BASE_PATH", default="STORAGE"))
 logger = logging.getLogger()
 
 
-@router.post("/add")
-def add_field(field: schemas.FieldCreate,
+@router.post("/")
+def add_field(field: FeatureCollection,
               conn: crud.CRUD = Depends(connecting_to_db)):
     """
     Accepts field information in GeoJSON format and adds
@@ -27,6 +30,7 @@ def add_field(field: schemas.FieldCreate,
     :param conn:
     :return int field_id: id of the field from db
     """
+
     # Adding field row to db.
     logger.info(f"Accepted {field} to add to db.")
     field_id = conn.create_field(field)
@@ -36,9 +40,27 @@ def add_field(field: schemas.FieldCreate,
     return field_id
 
 
-@router.get("/satellite_image")
-def get_satellite_image(field_id: int,
-                        conn: crud.CRUD = Depends(connecting_to_db)):
+@router.delete("/")
+def delete_field(field_id: int,
+                 conn: crud.CRUD = Depends(connecting_to_db)):
+    """
+    Deletes field row from database.
+    :param int field_id: id of the field from user
+    :param conn:
+    :return:
+    """
+
+    logger.info(f"Accepted {field_id} to delete from db.")
+    conn.delete_field_data_from_db(field_id)
+
+    # TODO check if present image and satellite data on disk, remove if present
+
+    logger.info(f"Deleted {field_id} from db.")
+
+
+@router.post("/image")
+def download_satellite_image(field_id: schemas.FieldID,
+                             conn: crud.CRUD = Depends(connecting_to_db)):
     """
     Accepts field id and gets satellite data.
     :param int field_id: id of the field from user
@@ -46,40 +68,29 @@ def get_satellite_image(field_id: int,
     :return:
     """
 
-    logger.info(f"Accepted {field_id} to get satellite image.")
+    logger.info(f"Accepted {field_id.field_id} to get satellite image.")
 
     # Get geojson by prod_id
-    geo_json = conn.get_geojson_by_field_id(field_id)
+    geo_json = conn.get_geojson_by_field_id(field_id.field_id)
+    get_satellite_data.delay(geo_json, field_id.field_id)
 
-    get_satellite_data(geo_json)
-
-    # Getting info about products to which user is subscribed.
-    logger.info(f"Got {field_id} satellite image.")
-
-    conn.change_status(field_id, "Received")
+    # TODO Moved to celery task - DONE
+    logger.info(f"Got {field_id.field_id} satellite image.")
 
 
-@router.get("/calculate_ndvi")
-def calculate_ndvi(field_id: int,
-                   conn: crud.CRUD = Depends(connecting_to_db)):
+@router.post("/ndvi")
+def calculate_ndvi(field_id: schemas.FieldID):
     """
     Calculates NDVI and saves path to NDVI image to database.
     :param int field_id: id of the field from user
-    :param conn:
     :return:
     """
 
     # Calculate NDVI and create NDVI image.
-    count_ndvi(field_id)
-
-    # Create path to the NDVI file.
-    path = str(field_id) + 'NDVI.tif'
-
-    # Save path to NDVI image to database.
-    conn.save_ndvi_path_to_db(path=path, field_id=field_id)
+    count_ndvi.delay(field_id.field_id)
 
 
-@router.get("/ndvi_image")
+@router.get("/ndvi/image")
 def get_ndvi_image(field_id: int,
                    conn: crud.CRUD = Depends(connecting_to_db)):
     """
@@ -96,23 +107,7 @@ def get_ndvi_image(field_id: int,
 
     # Check status if image is ready
     if status == "Ready":
-        file_path = FileSystemStorage(field_id).get_ndvi_image()
+        file_path = storage.get_path_to_ndvi_image(field_id=field_id)
         return FileResponse(path=file_path)
-
-    return status
-
-
-@router.delete("/delete")
-def delete_field(field_id: int,
-                 conn: crud.CRUD = Depends(connecting_to_db)):
-    """
-    Deletes field row from database.
-    :param int field_id: id of the field from user
-    :param conn:
-    :return:
-    """
-
-    logger.info(f"Accepted {field_id} to delete from db.")
-    conn.delete_field_data_from_db(field_id)
-    # Getting info about products to which user is subscribed.
-    logger.info(f"Deleted {field_id} from db.")
+    else:
+        return JSONResponse({"status": status})

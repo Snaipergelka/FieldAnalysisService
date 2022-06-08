@@ -2,7 +2,7 @@ import zipfile
 
 
 def unzip_files(path_to_zip: str,
-                output_folder: str = "unzipped_satellite_date"):
+                output_folder: str):
     """
     Unzip file with satellite data about the field.
     :param str path_to_zip: path to zipped directory

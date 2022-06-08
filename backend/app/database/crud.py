@@ -1,7 +1,10 @@
 import logging
 
-from . import models, schemas
+from geojson_pydantic import FeatureCollection
+
+from . import models
 from .database_config import SessionLocal
+
 
 logger = logging.getLogger()
 
@@ -14,7 +17,7 @@ class CRUD:
     def __init__(self):
         self.db = SessionLocal()
 
-    def create_field(self, field: schemas.FieldCreate):
+    def create_field(self, field: FeatureCollection):
         """
         Function that creates row in field table.
         :param field: field information from GeoJSON
@@ -22,7 +25,7 @@ class CRUD:
         """
 
         # Creating product ID and URL model.
-        db_field = models.Fields(**field.dict(),
+        db_field = models.Fields(**{"geo_json": field.dict()},
                                  status="Received")
 
         logger.info("Adding field to database.")
@@ -63,7 +66,10 @@ class CRUD:
         # Add NDVI path to db.
         self.db.query(models.Fields).where(
             models.Fields.id == field_id).update(
-            ndvi=path, status="Ready")
+            {"ndvi": path, "status": "Ready"})
+
+        # Committing database changes.
+        self.db.commit()
 
         self.db.close()
 
@@ -85,10 +91,13 @@ class CRUD:
         :param int field_id: id of the field from user
         :param str status_text: status text
         """
-
+        # TODO Update - DONE
         logger.info(f"Updating {field_id} status column with {status_text}.")
         self.db.query(models.Fields).where(
-            models.Fields.id == field_id).update(status=status_text)
+            models.Fields.id == field_id).update({"status": status_text})
+
+        # Committing database changes.
+        self.db.commit()
 
         self.db.close()
 

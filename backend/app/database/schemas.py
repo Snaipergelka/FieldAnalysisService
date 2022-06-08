@@ -1,10 +1,9 @@
-from geojson_pydantic import FeatureCollection
 from pydantic import BaseModel
 
 
-class FieldCreate(BaseModel):
-    geo_json: FeatureCollection
-
-
-class AddNDVI(FieldCreate):
+class AddNDVI(BaseModel):
     id: int
+
+
+class FieldID(BaseModel):
+    field_id: int
