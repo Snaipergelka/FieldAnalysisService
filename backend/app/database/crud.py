@@ -5,7 +5,6 @@ from geojson_pydantic import FeatureCollection
 from . import models
 from .database_config import SessionLocal
 
-
 logger = logging.getLogger()
 
 
@@ -91,7 +90,7 @@ class CRUD:
         :param int field_id: id of the field from user
         :param str status_text: status text
         """
-        # TODO Update - DONE
+
         logger.info(f"Updating {field_id} status column with {status_text}.")
         self.db.query(models.Fields).where(
             models.Fields.id == field_id).update({"status": status_text})

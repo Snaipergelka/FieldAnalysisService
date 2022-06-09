@@ -16,7 +16,10 @@ router = APIRouter(
     tags=["field"],
     )
 
-storage = ArtifactsFileSystemStorage(base_path=os.getenv("FS_STORAGE_BASE_PATH", default="STORAGE"))
+storage = ArtifactsFileSystemStorage(
+    base_path=os.getenv("FS_STORAGE_BASE_PATH",
+                        default="STORAGE"))
+
 logger = logging.getLogger()
 
 
@@ -74,7 +77,6 @@ def download_satellite_image(field_id: schemas.FieldID,
     geo_json = conn.get_geojson_by_field_id(field_id.field_id)
     get_satellite_data.delay(geo_json, field_id.field_id)
 
-    # TODO Moved to celery task - DONE
     logger.info(f"Got {field_id.field_id} satellite image.")
 
 

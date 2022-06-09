@@ -5,7 +5,9 @@ class SatelliteDataClient:
     def __init__(self, api_client):
         self.client = api_client
 
-    def get_data(self, footprint, output_folder: str = "satellite_data_providers"):
+    def get_data(self,
+                 footprint,
+                 output_folder: str = "satellite_data_providers"):
         """
         Gets data from Copernicus open access hub api by footprint.
 

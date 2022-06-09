@@ -1,7 +1,7 @@
 import logging
 
-from fastapi import FastAPI
 import uvicorn
+from fastapi import FastAPI
 
 from backend.app.database.database_config import init_tables
 from backend.app.routers import fields

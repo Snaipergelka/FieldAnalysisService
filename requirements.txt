@@ -8,3 +8,6 @@ celery
 SQLAlchemy
 psycopg2-binary
 geojson-pydantic
+matplotlib
+geopandas
+numpy
