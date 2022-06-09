@@ -17,5 +17,5 @@ jobs:
         run: |
           pip install flake8 isort
           ls -la
-          flake8 FieldAnalysisService
-          isort --check FieldAnalysisService
+          flake8 .
+          isort --check .
