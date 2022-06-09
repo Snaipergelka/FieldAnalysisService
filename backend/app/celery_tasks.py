@@ -6,7 +6,7 @@ from celery import Celery
 from sentinelsat import SentinelAPI, geojson_to_wkt
 
 from backend.app.analytics.ndvi_counter import calculate_and_save_ndvi_image
-from backend.app.database.crud import CRUD
+from backend.app.database.crud import CRUD, Status
 from backend.app.fs.file_system_storage import ArtifactsFileSystemStorage
 from backend.app.satellite_data_providers.satellite_data_client import \
     SatelliteDataClient
@@ -46,24 +46,31 @@ def get_satellite_data(geo_json: dict, field_id: int):
     :param dict geo_json:
     :return str zipped_path:
     """
-    # Convert a GeoJSON object to Well-Known Text
-    footprint = geojson_to_wkt(geo_json)
-    zipped_folder = storage.get_path_to_satellite_data_zipped(field_id)
+    try:
+        crud.change_status(field_id, Status.STARTED_DOWNLOAD)
 
-    # Get data from footprint and return path to zipped data
-    # TODO check on exception, particularly UnAuthorized
-    zipped_path = dp_client.get_data(footprint=footprint,
-                                     output_folder=zipped_folder)
+        # Convert a GeoJSON object to Well-Known Text
+        footprint = geojson_to_wkt(geo_json)
+        zipped_folder = storage.get_path_to_satellite_data_zipped(field_id)
 
-    # Unzip directory and return path to it
-    unzip_files(path_to_zip=zipped_path,
-                output_folder=storage.get_path_to_satellite_data_unzipped(
-                    field_id))
-    # Delete zipped data
-    shutil.rmtree(zipped_folder)
+        # Get data from footprint and return path to zipped data
+        # TODO check on exception, particularly UnAuthorized
+        zipped_path = dp_client.get_data(footprint=footprint,
+                                         output_folder=zipped_folder)
 
-    # Change status
-    crud.change_status(field_id, "Received")
+        # Unzip directory and return path to it
+        unzip_files(path_to_zip=zipped_path,
+                    output_folder=storage.get_path_to_satellite_data_unzipped(
+                        field_id))
+        # Delete zipped data
+        shutil.rmtree(zipped_folder)
+
+        # Change status
+        crud.change_status(field_id, Status.FINISHED_DOWNLOAD)
+
+    except Exception as ex:
+        crud.change_status(field_id, Status.ERROR_DOWNLOAD)
+        raise ex
 
 
 @app.task()
@@ -74,28 +81,35 @@ def count_ndvi(field_id: int):
     :param int field_id: id provide by api
     :return:
     """
+    try:
+        crud.change_status(field_id, Status.STARTED_CALCULATION)
 
-    # Get path to the unzipped satellite data
-    path = storage.get_path_to_satellite_data_unzipped(field_id)
+        # Get path to the unzipped satellite data
+        path = storage.get_path_to_satellite_data_unzipped(field_id)
 
-    # Get path to Red and NIR satellite images
-    provider = SciHubSatelliteDataExtractor(path_to_data=path)
-    nir = provider.extract_nir_image_path()
-    red = provider.extract_red_image_path()
+        # Get path to Red and NIR satellite images
+        provider = SciHubSatelliteDataExtractor(path_to_data=path)
+        nir = provider.extract_nir_image_path()
+        red = provider.extract_red_image_path()
 
-    # Create path to the NDVI file.
-    ndvi_folder_path = storage.get_path_to_ndvi_image(field_id=field_id)
-    file_path = os.path.join(ndvi_folder_path, 'NDVI.tif')
+        # Create path to the NDVI file.
+        ndvi_folder_path = storage.get_path_to_ndvi_image(field_id=field_id)
+        file_path = os.path.join(ndvi_folder_path, 'NDVI.tif')
 
-    # Get geojson from database
-    field_geojson = crud.get_geojson_by_field_id(field_id=field_id)
+        # Get geojson from database
+        field_geojson = crud.get_geojson_by_field_id(field_id=field_id)
 
-    logging.info(
-        f"Started ndvi calculation! nir:{nir} red:{red} out: {file_path}")
+        logging.info(
+            f"Started ndvi calculation! nir:{nir} red:{red} out: {file_path}")
 
-    calculate_and_save_ndvi_image(nir=nir, red=red, file_path=file_path,
-                                  field_geojson=field_geojson)
+        calculate_and_save_ndvi_image(nir=nir, red=red, file_path=file_path,
+                                      field_geojson=field_geojson)
 
-    # Save path to NDVI image to database.
-    # It is used when we return image from endpoint
-    crud.save_ndvi_path_to_db(path=file_path, field_id=field_id)
+        # Save path to NDVI image to database.
+        # It is used when we return image from endpoint
+        crud.save_ndvi_path_to_db(path=file_path, field_id=field_id)
+        crud.change_status(field_id, Status.FINISHED_CALCULATION)
+
+    except Exception as ex:
+        crud.change_status(field_id, Status.ERROR_CALCULATION)
+        raise ex

@@ -25,7 +25,7 @@ class ArtifactsFileSystemStorage:
     def __init__(self, base_path):
         self.base_path = base_path
 
-    def __create_if_not_exist(self, field_id, data_type):
+    def __create_if_not_exist(self, field_id, data_type=""):
         try:
             pathlib.Path(os.path.join(
                 self.base_path, str(field_id), data_type)
@@ -49,3 +49,9 @@ class ArtifactsFileSystemStorage:
                             str(field_id),
                             NDVI_IMAGE_DATA_FOLDER,
                             NDVI_IMAGE_FILE)
+
+    def get_path_to_field_base(self, field_id):
+        self.__create_if_not_exist(field_id)
+        return os.path.join(
+            self.base_path,
+            str(field_id))

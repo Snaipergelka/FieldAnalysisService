@@ -8,6 +8,16 @@ from .database_config import SessionLocal
 logger = logging.getLogger()
 
 
+class Status:
+    STARTED_DOWNLOAD = "STARTED_DOWNLOAD"
+    FINISHED_DOWNLOAD = "FINISHED_DOWNLOAD"
+    ERROR_DOWNLOAD = "ERROR_DOWNLOAD"
+
+    STARTED_CALCULATION = "STARTED_CALCULATION"
+    FINISHED_CALCULATION = "FINISHED_CALCULATION"
+    ERROR_CALCULATION = "ERROR_CALCULATION"
+
+
 class CRUD:
     """
     This class is responsible for communicating with database.

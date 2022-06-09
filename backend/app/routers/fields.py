@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse, JSONResponse
@@ -15,6 +16,8 @@ router = APIRouter(
     prefix="/field",
     tags=["field"],
     )
+
+Status = crud.Status
 
 storage = ArtifactsFileSystemStorage(
     base_path=os.getenv("FS_STORAGE_BASE_PATH",
@@ -40,7 +43,9 @@ def add_field(field: FeatureCollection,
 
     logger.info(f"Added {field} to db.")
 
-    return field_id
+    return JSONResponse({
+        "field_id": field_id
+    })
 
 
 @router.delete("/")
@@ -56,7 +61,8 @@ def delete_field(field_id: int,
     logger.info(f"Accepted {field_id} to delete from db.")
     conn.delete_field_data_from_db(field_id)
 
-    # TODO check if present image and satellite data on disk, remove if present
+    # deleted folders and files from disk
+    shutil.rmtree(storage.get_path_to_field_base(field_id))
 
     logger.info(f"Deleted {field_id} from db.")
 
@@ -78,18 +84,43 @@ def download_satellite_image(field_id: schemas.FieldID,
     get_satellite_data.delay(geo_json, field_id.field_id)
 
     logger.info(f"Got {field_id.field_id} satellite image.")
+    return JSONResponse({
+        "status": Status.STARTED_DOWNLOAD,
+        "message": "Started satellite data download."
+    })
 
 
 @router.post("/ndvi")
-def calculate_ndvi(field_id: schemas.FieldID):
+def calculate_ndvi(field_id: schemas.FieldID,
+                   conn: crud.CRUD = Depends(connecting_to_db)):
     """
     Calculates NDVI and saves path to NDVI image to database.
+    :param conn:
     :param int field_id: id of the field from user
     :return:
     """
 
     # Calculate NDVI and create NDVI image.
-    count_ndvi.delay(field_id.field_id)
+    status = conn.get_status(field_id.field_id)
+
+    if status == Status.FINISHED_DOWNLOAD:
+        count_ndvi.delay(field_id.field_id)
+        message = "Started ndvi calculation."
+    elif status == Status.ERROR_DOWNLOAD:
+        message = "Error happened during image download."
+    elif status == Status.STARTED_DOWNLOAD:
+        message = "Data is not downloaded yet."
+    elif status == Status.STARTED_CALCULATION:
+        message = "Calculation is in progress."
+    else:
+        status = "OUT_OF_ORDER"
+        message = "Please ensure that you preserve correct order " \
+                  "of API calls."
+
+    return JSONResponse({
+        "status": status,
+        "message": message
+    })
 
 
 @router.get("/ndvi/image")
@@ -108,8 +139,20 @@ def get_ndvi_image(field_id: int,
     status = conn.get_status(field_id)
 
     # Check status if image is ready
-    if status == "Ready":
+    if status == Status.FINISHED_CALCULATION:
         file_path = storage.get_path_to_ndvi_image(field_id=field_id)
         return FileResponse(path=file_path)
     else:
-        return JSONResponse({"status": status})
+        if status == Status.ERROR_CALCULATION:
+            message = "Error happened during ndvi calculation."
+        elif status == Status.STARTED_CALCULATION:
+            message = "NDVI calculation is in progress."
+        else:
+            status = "OUT_OF_ORDER"
+            message = "Please ensure that you preserve correct " \
+                      "order of API calls."
+
+        return JSONResponse({
+            "status": status,
+            "message": message
+        })

@@ -2,8 +2,8 @@
 
 # About
 The main idea of this project is to implement a service which can 
-upload satellite imagery, calculate NDVI and provide field NDVI image
-by providing a REST API.
+download satellite imagery, calculate NDVI and provide field NDVI image 
+via REST API.
 
 # How to start
 To start this application you need to start docker compose by command: 
@@ -11,8 +11,35 @@ To start this application you need to start docker compose by command:
 docker-compose up
 ```
 
-# Supported features and examples of use
-The service provides an API you can interact with.
+# Supported features
+The service provides an API you can interact with. 
+You should preserve following API calls order:
+- add field
+- trigger download satellite data task
+- trigger ndvi calculation task
+- get ndvi image
+
+
+# Implementation details
+It is A FastAPI project, which consists of  
+- Backend application `backend\`:
+  - **Satellite data provider** `backend\app\satellite_data_providers` - this directory includes 
+files `\satellite_data_client.py` and `\satellite_data_extractor.py` which consists of functions 
+that get data from Copernicus open access hub api by footprint and extracts file paths to Red and NIR 
+images 
+  - **Analytics** `backend\app\analytics` - this directory includes file `\ndvi_counter.py` which consists
+of functions which calculates NDVI, creates NDVI image and invokes function to save NDVI image
+  - **File system** `backend\app\fs` - this directory includes `\file_system_storage.py` and 
+`\image_saver.py` which consist of functions that provide path to saved satellite data and NDVi images
+and save NDVI image
+  - **File unzipper** `backend\app\utils.py` - this file includes function that unzips satellite data, 
+delete zipped archive and saves unzipped file
+- Database `backend\app\database` - we use PostgreSQL to store field id, field GeoJSON, path to NDVI image,
+status of calculating NDVI image
+- Celery tasks `backend\app\celery_tasks.py` - celery tasks are responsible for getting unzipped satellite data
+and calculating NDVI and saving NDVI image
+
+# Examples of use
 ## Add field to database and get field ID  
 ```
 curl -X 'POST' \
@@ -127,21 +154,3 @@ curl -X 'DELETE' \
 ```
 
 
-# Implementation details
-It is A FastAPI project, which consists of  
-- Backend application `backend\`:
-  - **Satellite data provider** `backend\app\satellite_data_providers` - this directory includes 
-files `\satellite_data_client.py` and `\satellite_data_extractor.py` which consists of functions 
-that get data from Copernicus open access hub api by footprint and extracts file paths to Red and NIR 
-images 
-  - **Analytics** `backend\app\analytics` - this directory includes file `\ndvi_counter.py` which consists
-of functions which calculates NDVI, creates NDVI image and invokes function to save NDVI image
-  - **File system** `backend\app\fs` - this directory includes `\file_system_storage.py` and 
-`\image_saver.py` which consist of functions that provide path to saved satellite data and NDVi images
-and save NDVI image
-  - **File unzipper** `backend\app\utils.py` - this file includes function that unzips satellite data, 
-delete zipped archive and saves unzipped file
-- Database `backend\app\database` - we use PostgreSQL to store field id, field GeoJSON, path to NDVI image,
-status of calculating NDVI image
-- Celery tasks `backend\app\celery_tasks.py` - celery tasks are responsible for getting unzipped satellite data
-and calculating NDVI and saving NDVI image

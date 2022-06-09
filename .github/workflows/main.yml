@@ -17,5 +17,5 @@ jobs:
         run: |
           pip install flake8 isort
           ls -la
-          flake8 .
+          flake8 backend
           isort --check .
