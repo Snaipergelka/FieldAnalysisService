@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+sentinelsat
+pandas
+rasterio==1.2.10
+redis
+celery
+SQLAlchemy
+psycopg2-binary
+geojson-pydantic
+matplotlib
+geopandas
+numpy

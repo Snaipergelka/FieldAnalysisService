@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+.idea
+backend/data/nvdi_images/NDVI.tif
+/backend/data/
+/STORAGE
+data
+*.geojson
