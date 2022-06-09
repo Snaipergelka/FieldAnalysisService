@@ -6,5 +6,8 @@ COPY requirements.txt requirements.txt
 RUN python3 --version
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
+ADD https://github.com/ufoscout/docker-compose-wait/releases/download/2.7.2/wait /wait
+RUN chmod +x /wait
+
 WORKDIR .
 COPY . .

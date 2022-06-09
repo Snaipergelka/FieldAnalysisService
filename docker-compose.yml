@@ -20,9 +20,14 @@ services:
 
   celery:
       build: .
-      command: celery -A backend.app.celery_tasks worker --loglevel=INFO -E
+      command: bash -c "/wait && celery -A backend.app.celery_tasks worker --loglevel=INFO -E"
       env_file:
         - .env
+      environment:
+        - WAIT_HOSTS=postgres:5432, redis:6379
+        - WAIT_HOSTS_TIMEOUT=300
+        - WAIT_SLEEP_INTERVAL=30
+        - WAIT_HOST_CONNECT_TIMEOUT=30
       volumes:
         - ./data/fs_storage:/STORAGE
       depends_on:
@@ -31,10 +36,15 @@ services:
 
   fast_api:
     build: .
-    command: uvicorn backend.app.endpoint:app --host 0.0.0.0
+    command: bash -c "/wait && uvicorn backend.app.endpoint:app --host 0.0.0.0"
     container_name: backend_app
     env_file:
       - .env
+    environment:
+      - WAIT_HOSTS=postgres:5432
+      - WAIT_HOSTS_TIMEOUT=300
+      - WAIT_SLEEP_INTERVAL=30
+      - WAIT_HOST_CONNECT_TIMEOUT=30
     volumes:
       - ./data/fs_storage:/STORAGE
     depends_on:

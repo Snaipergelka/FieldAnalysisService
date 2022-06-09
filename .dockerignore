@@ -1,6 +1,8 @@
 backend/app/data/*
 backend/data/*
 **/*tif.points
+**/*tif
+**/*.tiff
 .cache
 .git
 venv/
