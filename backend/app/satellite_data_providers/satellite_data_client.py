@@ -18,7 +18,7 @@ class SatelliteDataClient:
 
         # search by polygon, time, and SciHub query keywords
         products = self.client.query(footprint,
-                                     date=('20220101', '20220605'),
+                                     date=('NOW-1DAY', 'NOW'),
                                      platformname='Sentinel-2',
                                      cloudcoverpercentage=(0, 10))
 

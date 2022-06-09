@@ -11,9 +11,7 @@ class ImageSaverToFileSystem:
         pass
 
     def save_ndvi_image(self, meta, ndvi,
-                        file_path: str,
-                        file_type: str = '.tif',
-                        file_name: str = 'NDVI'):
+                        file_path: str):
         """
         Writes image into a file and saves it in file system.
         You provide either file_path or (file_type and file_name)

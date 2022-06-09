@@ -4,6 +4,7 @@ import pathlib
 ZIPPED_FOLDER = "zipped"
 UNZIPPED_FOLDER = "unzipped"
 NDVI_IMAGE_DATA_FOLDER = "ndvi"
+NDVI_IMAGE_FILE = "NDVI.tif"
 
 
 class ArtifactsFileSystemStorage:
@@ -46,4 +47,5 @@ class ArtifactsFileSystemStorage:
                                    data_type=NDVI_IMAGE_DATA_FOLDER)
         return os.path.join(self.base_path,
                             str(field_id),
-                            NDVI_IMAGE_DATA_FOLDER)
+                            NDVI_IMAGE_DATA_FOLDER,
+                            NDVI_IMAGE_FILE)

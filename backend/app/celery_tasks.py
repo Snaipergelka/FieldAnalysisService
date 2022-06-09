@@ -26,9 +26,9 @@ logging.basicConfig(
 app = Celery('get_information',
              broker=os.environ.get('BROKER_URL'))
 
-api = SentinelAPI(os.environ.get("USER"),
-                  os.environ.get("PASSWORD"),
-                  'https://apihub.copernicus.eu/apihub')
+api = SentinelAPI(user=os.environ.get("login"),
+                  password=os.environ.get("password"),
+                  api_url=os.environ.get("api"))
 
 dp_client = SatelliteDataClient(api_client=api)
 crud = CRUD()
