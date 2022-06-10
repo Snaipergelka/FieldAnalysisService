@@ -94,7 +94,7 @@ def count_ndvi(field_id: int):
 
         # Create path to the NDVI file.
         ndvi_folder_path = storage.get_path_to_ndvi_image(field_id=field_id)
-        file_path = os.path.join(ndvi_folder_path, 'NDVI.tif')
+        file_path = ndvi_folder_path
 
         # Get geojson from database
         field_geojson = crud.get_geojson_by_field_id(field_id=field_id)
