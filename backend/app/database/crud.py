@@ -9,6 +9,8 @@ logger = logging.getLogger()
 
 
 class Status:
+    FIELD_CREATED = "FIELD_CREATED"
+
     STARTED_DOWNLOAD = "STARTED_DOWNLOAD"
     FINISHED_DOWNLOAD = "FINISHED_DOWNLOAD"
     ERROR_DOWNLOAD = "ERROR_DOWNLOAD"
@@ -35,7 +37,7 @@ class CRUD:
 
         # Creating product ID and URL model.
         db_field = models.Fields(**{"geo_json": field.dict()},
-                                 status="Received")
+                                 status=Status.FIELD_CREATED)
 
         logger.info("Adding field to database.")
         self.db.add(db_field)
@@ -75,7 +77,7 @@ class CRUD:
         # Add NDVI path to db.
         self.db.query(models.Fields).where(
             models.Fields.id == field_id).update(
-            {"ndvi": path, "status": "Ready"})
+            {"ndvi": path})
 
         # Committing database changes.
         self.db.commit()

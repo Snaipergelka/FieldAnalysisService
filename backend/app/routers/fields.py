@@ -15,7 +15,7 @@ from .routers_config import connecting_to_db
 router = APIRouter(
     prefix="/field",
     tags=["field"],
-    )
+)
 
 Status = crud.Status
 
@@ -78,9 +78,18 @@ def download_satellite_image(field_id: schemas.FieldID,
     """
 
     logger.info(f"Accepted {field_id.field_id} to get satellite image.")
+    status = conn.get_status(field_id.field_id)
+    if status != Status.FIELD_CREATED:
+        return JSONResponse({
+            "status": "OUT_OF_ORDER",
+            "message": "Please ensure that you preserve correct order"
+                       " of API calls."
+        })
 
     # Get geojson by prod_id
     geo_json = conn.get_geojson_by_field_id(field_id.field_id)
+
+    # Get satellite data
     get_satellite_data.delay(geo_json, field_id.field_id)
 
     logger.info(f"Got {field_id.field_id} satellite image.")
@@ -100,10 +109,11 @@ def calculate_ndvi(field_id: schemas.FieldID,
     :return:
     """
 
-    # Calculate NDVI and create NDVI image.
+    # Check if satellite data is ready
     status = conn.get_status(field_id.field_id)
 
     if status == Status.FINISHED_DOWNLOAD:
+        # Calculate NDVI and create NDVI image.
         count_ndvi.delay(field_id.field_id)
         message = "Started ndvi calculation."
     elif status == Status.ERROR_DOWNLOAD:
